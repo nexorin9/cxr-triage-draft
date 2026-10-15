@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ service_name }} · 三栏分诊面板</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script defer src="https://unpkg.com/alpinejs@3.13.5/dist/cdn.min.js"></script>
+</head>
+<body x-data="triagePanel()" x-init="init()" :class="{ 'is-degraded': degraded }">
+    <!-- 顶部 banner 槽位（告警 / 降级 由 Alpine.js 渲染） -->
+    <header class="app-header">
+        <h1>{{ service_name }}</h1>
+        <p class="subtitle">{{ endpoint_count }} 个 REST + SSE 端点 · 版本 {{ version }}</p>
+        <div id="alert-slot" class="alert-slot" x-show="alerts.length > 0">
+            <template x-for="alert in alerts" :key="alert.event_id">
+                <div class="alert-banner" :data-target="alert.target">
+                    <span class="alert-icon">⚠</span>
+                    <span class="alert-text" x-text="alert.message"></span>
+                    <button class="alert-dismiss" @click="dismissAlert(alert.event_id)">×</button>
+                </div>
+            </template>
+        </div>
+        <div id="degraded-banner" class="degraded-banner" x-show="degraded">
+            <span class="banner-icon">⚠</span>
+            <span class="banner-text">{{ degradation_banner_text }}</span>
+        </div>
+    </header>
+
+    <!-- 主网格：三栏 -->
+    <main class="triage-grid">
+
+        <!-- 栏 1：阳性分诊队列（triage_queue，按 max_prob 倒序） -->
+        <section class="column column-positive" id="column-positive" aria-labelledby="col-positive-title">
+            <header class="column-header">
+                <h2 id="col-positive-title">阳性队列</h2>
+                <span class="column-count" x-text="positiveStudies.length"></span>
+            </header>
+            <ul class="study-list" id="positive-list" x-data>
+                <template x-for="study in positiveStudies" :key="study.study_uid">
+                    <li
+                        class="study-item"
+                        :class="{ 'is-selected': selectedStudy && selectedStudy.study_uid === study.study_uid, 'is-positive': study.positive_flag }"
+                        @click="selectStudy(study)"
+                    >
+                        <div class="study-line-1">
+                            <span class="study-uid" x-text="study.study_uid"></span>
+                            <span class="study-max-prob" x-text="'P=' + study.max_prob.toFixed(2)"></span>
+                        </div>
+                        <div class="study-line-2" x-text="study.finding_text || '所见草稿生成中…'"></div>
+                    </li>
+                </template>
+                <li x-show="positiveStudies.length === 0" class="empty-state">
+                    当前无阳性分诊，体检 PACS 入站会触发实时调度。
+                </li>
+            </ul>
+        </section>
+
+        <!-- 栏 2：阴性（低 max_prob / 已签发） -->
+        <section class="column column-negative" id="column-negative" aria-labelledby="col-negative-title">
+            <header class="column-header">
+                <h2 id="col-negative-title">阴性队列</h2>
+                <span class="column-count" x-text="negativeStudies.length"></span>
+            </header>
+            <ul class="study-list" id="negative-list">
+                <template x-for="study in negativeStudies" :key="study.study_uid">
+                    <li
+                        class="study-item study-item-negative"
+                        :class="{ 'is-selected': selectedStudy && selectedStudy.study_uid === study.study_uid }"
+                        @click="selectStudy(study)"
+                    >
+                        <div class="study-line-1">
+                            <span class="study-uid" x-text="study.study_uid"></span>
+                            <span class="study-max-prob-neg" x-text="'P=' + study.max_prob.toFixed(2)"></span>
+                        </div>
+                        <div class="study-line-2" x-text="study.finding_text || '正常胸片（草稿生成中）'"></div>
+                    </li>
+                </template>
+                <li x-show="negativeStudies.length === 0" class="empty-state">
+                    当前无阴性分诊。
+                </li>
+            </ul>
+        </section>
+
+        <!-- 栏 3：草稿所见详情（当前选中 study） -->
+        <section class="column column-draft" id="column-draft" aria-labelledby="col-draft-title">
+            <header class="column-header">
+                <h2 id="col-draft-title">草稿所见</h2>
+                <span class="study-state" x-show="selectedStudy" x-text="selectedStudy.triage_state || '未分流'"></span>
+            </header>
+
+            <!-- 未选中时显示占位 -->
+            <div x-show="!selectedStudy" class="empty-state detail-empty">
+                请从左侧选择一条 study 以查看草稿所见与定位框。
+            </div>
+
+            <!-- 选中后渲染所见 + 定位框 + 预览图 -->
+            <article x-show="selectedStudy" class="draft-detail">
+                <div class="draft-meta">
+                    <div class="meta-row"><label>StudyInstanceUID</label><span x-text="selectedStudy ? selectedStudy.study_uid : ''"></span></div>
+                    <div class="meta-row"><label>Pmax</label><span x-text="selectedStudy ? selectedStudy.max_prob.toFixed(3) : ''"></span></div>
+                    <div class="meta-row"><label>阳性</label><span :class="['flag-pill', selectedStudy && selectedStudy.positive_flag ? 'flag-positive' : 'flag-negative']"
+                        x-text="selectedStudy && selectedStudy.positive_flag ? '阳性' : '阴性'"></span></div>
+                </div>
+
+                <div class="finding-section">
+                    <h3>所见草稿</h3>
+                    <p class="finding-text" x-text="selectedStudy ? (selectedStudy.finding_text || '（草稿生成中，请稍后刷新）') : ''"></p>
+                </div>
+
+                <div class="keyqa-section">
+                    <h3>关键问答（keyqa）</h3>
+                    <ul class="keyqa-list">
+                        <template x-for="qa in (selectedStudy ? selectedStudy.key_qa_list || [] : [])" :key="qa.q">
+                            <li class="keyqa-item">
+                                <span class="keyqa-q" x-text="qa.q"></span>
+                                <span class="keyqa-a" x-text="qa.a"></span>
+                            </li>
+                        </template>
+                        <li x-show="!selectedStudy || !(selectedStudy.key_qa_list && selectedStudy.key_qa_list.length)" class="empty-state keyqa-empty">
+                            暂无关键问答记录。
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="grounding-section">
+                    <h3>阳性定位框</h3>
+                    <div class="preview-stage" x-data>
+                        <img
+                            x-show="selectedStudy && selectedStudy.png_preview_b64"
+                            :src="selectedStudy && selectedStudy.png_preview_b64 ? 'data:image/png;base64,' + selectedStudy.png_preview_b64 : ''"
+                            alt="胸片预览"
+                            class="preview-image"
+                        >
+                        <p x-show="!selectedStudy || !selectedStudy.png_preview_b64" class="empty-state preview-empty">
+                            暂无可预览胸片。
+                        </p>
+                        <svg
+                            x-show="selectedStudy && selectedStudy.grounding_boxes && selectedStudy.grounding_boxes.length > 0"
+                            class="grounding-svg"
+                            preserveAspectRatio="none"
+                            viewBox="0 0 1 1"
+                        >
+                            <template x-for="(box, idx) in (selectedStudy ? selectedStudy.grounding_boxes || [] : [])" :key="idx">
+                                <rect
+                                    :x="box.x"
+                                    :y="box.y"
+                                    :width="box.w"
+                                    :height="box.h"
+                                    fill="none"
+                                    stroke="red"
+                                    stroke-width="0.005"
+                                ></rect>
+                            </template>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 三角色流转按钮组 -->
+                <div class="action-bar">
+                    <button class="btn btn-jr" :disabled="!canConfirm('jr')" @click="confirmStudy('jr')">
+                        初诊确认（jr）
+                    </button>
+                    <button class="btn btn-reviewer" :disabled="!canConfirm('reviewer')" @click="confirmStudy('reviewer')">
+                        主检复核（reviewer）
+                    </button>
+                    <button class="btn btn-sr" :disabled="!canConfirm('sr')" @click="confirmStudy('sr')">
+                        终审签发（sr）
+                    </button>
+                    <button class="btn btn-reject" :disabled="!canReject()" @click="rejectStudy()">
+                        驳回重写
+                    </button>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <!-- 调试输出（用于 Phase 4 验收） -->
+    <footer class="debug-footer">
+        <span class="debug-counts">
+            <span x-text="'阳性 ' + positiveStudies.length"></span>
+            <span x-text="' · 阴性 ' + negativeStudies.length"></span>
+            <span x-text="' · 选中 ' + (selectedStudy ? selectedStudy.study_uid : '—')"></span>
+            <span x-text="' · 上次事件 ' + (lastSeenTs || '无')"></span>
+            <span x-text="' · 端点 ' + {{ endpoint_count|tojson }}"></span>
+        </span>
+        <span class="debug-status" x-text="connectionStatus"></span>
+    </footer>
+
+    <!-- 端点速查面板：静态清单（飞检/自检可见；Alpine.js 仅负责动态列表） -->
+    <aside class="endpoint-list" data-test="endpoint-list" aria-label="REST + SSE 端点清单">
+        <h3>REST + SSE 端点（共 {{ endpoint_count }} 个）</h3>
+        <ul class="endpoints">
+            <li class="endpoint-row">GET  /api/health</li>
+            <li class="endpoint-row">GET  /api/studies</li>
+            <li class="endpoint-row">GET  /api/studies/&lt;study_uid&gt;</li>
+            <li class="endpoint-row">POST /api/studies/&lt;study_uid&gt;/confirm</li>
+            <li class="endpoint-row">POST /api/studies/&lt;study_uid&gt;/reject</li>
+            <li class="endpoint-row">GET  /api/queue/positive</li>
+            <li class="endpoint-row">GET  /api/queue/negative</li>
+            <li class="endpoint-row">GET  /api/outbox</li>
+            <li class="endpoint-row">GET  /api/sse</li>
+            <li class="endpoint-row">GET  /</li>
+        </ul>
+    </aside>
+
+    <script src="/static/alert_banner.js"></script>
+    <script src="/static/app.js"></script>
+    <script>
+        // 启动时把 Jinja 渲染的服务名注入 Alpine x-data
+        document.addEventListener('alpine:init', () => {
+            // noop — 由 app.js 暴露的 window.triagePanel 接管工厂
+        });
+    </script>
+</body>
+</html>

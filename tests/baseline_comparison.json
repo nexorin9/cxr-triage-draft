@@ -1,0 +1,371 @@
+{
+  "_meta": {
+    "schema_version": "1.0",
+    "task_id": 13,
+    "purpose": "单工具 baseline（仅 TriageClassifier DenseNet-121）vs 多工具协同（Classifier + FindingDraft + PositiveGrounding + KeyQA + ImagePreview）阳性 flag 检出率占位",
+    "threshold_default": 0.5,
+    "fixtures_count_expected": 3,
+    "fixture_label_meaning": {
+      "positive": "已知阳性（胸片右下肺气胸，DICOM fixture: sample_cxr_positive.dcm）",
+      "negative": "已知阴性（正常胸片，DICOM fixture: sample_cxr_negative.dcm）",
+      "borderline": "已知边界（心影临界，DICOM fixture: sample_cxr_borderline.dcm）"
+    },
+    "placeholder_note": "本文件由 Task 13 落地占位结构；正式数值由 Task 35 test_baseline_comparison.py 跑测试自动覆写",
+    "metric_definitions": {
+      "positive_recall": "阳性样本被正确标 positive_flag 的比例（recall = TP / (TP + FN)）",
+      "positive_precision": "标 positive_flag 的样本中真阳性的比例（precision = TP / (TP + FP)）",
+      "tp": "true positive — 已知阳性 & 工具判定阳性",
+      "fp": "false positive — 已知阴性 & 工具判定阳性",
+      "tn": "true negative — 已知阴性 & 工具判定阴性",
+      "fn": "false negative — 已知阳性 & 工具判定阴性"
+    }
+  },
+  "threshold": 0.5,
+  "single_tool_baseline": {
+    "name": "DenseNet-121 only",
+    "description": "仅跑 TriageClassifier（18 病理概率 + max_prob）；不动 keyqa/finding_draft/grounding/image_preview；阳性 flag = rule_max_prob(probs, threshold)",
+    "positive_recall": 1.0,
+    "positive_precision": 0.5,
+    "tp": 1,
+    "fp": 1,
+    "tn": 1,
+    "fn": 0,
+    "tool_versions": {
+      "classifier": "0.1.0"
+    }
+  },
+  "multi_tool_pipeline": {
+    "name": "Classifier + FindingDraft + PositiveGrounding + KeyQA + ImagePreview",
+    "description": "5 件工具协同；阳性 flag 由 process_node 判定（与单工具 baseline 一致，便于公平对比；多工具新增产物仅作辅助字段，不进阳性 flag 决策）",
+    "positive_recall": 1.0,
+    "positive_precision": 0.5,
+    "tp": 1,
+    "fp": 1,
+    "tn": 1,
+    "fn": 0,
+    "tool_versions": {
+      "classifier": "0.1.0",
+      "keyqa": "0.1.0",
+      "finding_draft": "0.1.0",
+      "positive_grounding": "0.1.0",
+      "image_preview": "0.1.0"
+    },
+    "extra_metrics": {
+      "finding_text_present_rate": 1.0,
+      "grounding_box_present_rate": 0.6667,
+      "png_preview_present_rate": 1.0,
+      "model_unreachable_count": 0
+    }
+  },
+  "fixtures": [
+    {
+      "id": "fixture_positive_",
+      "label": "positive",
+      "fixture_path": "tests/fixtures/sample_cxr_positive.dcm",
+      "ground_truth_positive_flag": true,
+      "classifier_probs": [
+        {
+          "name": "Atelectasis",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Consolidation",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Infiltration",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pneumothorax",
+          "prob": 0.85,
+          "present": true
+        },
+        {
+          "name": "Edema",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Emphysema",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Fibrosis",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Effusion",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pneumonia",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pleural_Thickening",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Cardiomegaly",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Nodule",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Mass",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Hernia",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Lung Lesion",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Fracture",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Lung Opacity",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Enlarged Cardiomediastinum",
+          "prob": 0.05,
+          "present": false
+        }
+      ],
+      "baseline_positive_flag": true,
+      "multi_tool_positive_flag": true,
+      "max_prob": 0.85
+    },
+    {
+      "id": "fixture_negative_",
+      "label": "negative",
+      "fixture_path": "tests/fixtures/sample_cxr_negative.dcm",
+      "ground_truth_positive_flag": false,
+      "classifier_probs": [
+        {
+          "name": "Atelectasis",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Consolidation",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Infiltration",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pneumothorax",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Edema",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Emphysema",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Fibrosis",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Effusion",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pneumonia",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pleural_Thickening",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Cardiomegaly",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Nodule",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Mass",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Hernia",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Lung Lesion",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Fracture",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Lung Opacity",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Enlarged Cardiomediastinum",
+          "prob": 0.05,
+          "present": false
+        }
+      ],
+      "baseline_positive_flag": false,
+      "multi_tool_positive_flag": false,
+      "max_prob": 0.05
+    },
+    {
+      "id": "fixture_borderline_",
+      "label": "borderline",
+      "fixture_path": "tests/fixtures/sample_cxr_borderline.dcm",
+      "ground_truth_positive_flag": false,
+      "classifier_probs": [
+        {
+          "name": "Atelectasis",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Consolidation",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Infiltration",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pneumothorax",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Edema",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Emphysema",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Fibrosis",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Effusion",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pneumonia",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Pleural_Thickening",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Cardiomegaly",
+          "prob": 0.51,
+          "present": true
+        },
+        {
+          "name": "Nodule",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Mass",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Hernia",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Lung Lesion",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Fracture",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Lung Opacity",
+          "prob": 0.05,
+          "present": false
+        },
+        {
+          "name": "Enlarged Cardiomediastinum",
+          "prob": 0.05,
+          "present": false
+        }
+      ],
+      "baseline_positive_flag": true,
+      "multi_tool_positive_flag": true,
+      "max_prob": 0.51
+    }
+  ],
+  "comparison_summary": {
+    "interpretation": "single-tool 与 multi-tool 的 positive_flag 一致（1.0/1.0 recall、0.5/0.5 precision）；multi-tool 增量价值在 auxiliary：finding_text 3/3、grounding_box 2/3、png_preview 3/3。边界 fixture（Cardiomegaly 0.51）按 ground_truth=阴性算作 FP，符合预期：0.51 ≥ 0.5 阈值 → 模型判阳性，但临床真相仍为阴性；这一对照保证阈值边界的可观察性。",
+    "delta_recall": 0.0,
+    "delta_precision": 0.0,
+    "notes": "Task 35 test_baseline_comparison.py 跑 3 例 fixtures 自动覆写；positive_flag 决策仅依赖 classifier_max_prob vs threshold，两条工作流结果一致；multi_tool 的价值在 finding_text / grounding_box / png_preview 三类 auxiliary 产物。"
+  }
+}

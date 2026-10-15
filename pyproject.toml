@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cxr-triage-draft"
+version = "0.1.0"
+description = "体检胸片所见草稿系统 — PACS 落片 → 多工具协同 → 三角色流转 → RIS + 体检主检真实外发写回"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "ChaosForge Hospital Engineering"},
+]
+keywords = ["chest-xray", "pacs", "ris", "triage", "draft", "medical-imaging"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    # ---- Web 服务与渲染 ----
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.27.0",
+    "jinja2>=3.1.0",
+
+    # ---- HTTP 客户端（对外写回 + 测试替身）----
+    "httpx>=0.27.0",
+
+    # ---- 配置与校验 ----
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+
+    # ---- DICOM 协议与解析 ----
+    "pynetdicom>=2.0.0",
+    "pydicom>=2.4.0",
+    "numpy>=1.24.0",
+    "pillow>=10.0.0",
+
+    # ---- 胸片分类（torchxrayvision DenseNet-121，18 病理概率）----
+    "torchxrayvision>=1.0.0",
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+
+    # ---- 多工具协同（StateGraph 编排）----
+    "langgraph>=0.0.20",
+    "langchain-core>=0.1.0",
+    "langchain-openai>=0.0.5",
+
+    # ---- 持久化 ----
+    "aiosqlite>=0.19.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "respx>=0.21.0",            # httpx 异步客户端的可控 mock
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+cxr-triage = "cxr_triage.cli.run:main"
+
+# 让 `python -m cxr_triage` 工作
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q --tb=short"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

@@ -1,0 +1,99 @@
+# ============
+# Secrets & local config
+# ============
+.env
+.env.local
+.env.*.local
+
+# ============
+# Python runtime
+# ============
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+.eggs/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+.installed.cfg
+lib/
+lib64/
+man/
+
+# ============
+# Virtual environments
+# ============
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ============
+# Testing & linting cache
+# ============
+.pytest_cache/
+.coverage
+.coverage.*
+.cache
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.tox/
+.nox/
+coverage.xml
+*.cover
+
+# ============
+# IDE / editor
+# ============
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*~
+
+# ============
+# Runtime artefacts (Phase 4 logs, downloaded models, runtime DBs)
+# ============
+logs/
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+*.pid
+models/
+model_dir/
+watch/
+watch/.processed/
+
+# ============
+# Build / packaging
+# ============
+node_modules/
+.next/
+.nuxt/
+target/
+out/
+
+# ============
+# Round metadata — must NOT enter the publishable GitHub repo
+# ============
+score.json
+
+# NOTE: qrcode.jpg is intentionally NOT excluded — required by README 关注区块.

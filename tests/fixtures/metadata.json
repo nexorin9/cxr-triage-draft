@@ -1,0 +1,83 @@
+{
+  "schema_version": "1.0",
+  "description": "脱敏样例表（DICOM fixtures metadata）。所有占位符（含 <EXAMPLE_*>）都不会与任何真实数据混淆；本文件用于 test_ev_harness / demo 阶段列出已知标签，不进入生产外发。",
+  "salt_for_patient_id_hash": "cxr-triage-draft-fixture-salt-2026",
+  "fixtures": [
+    {
+      "label": "positive",
+      "filename": "sample_cxr_positive.dcm",
+      "expected_clinical_finding": "右下肺野气胸征象（已知阳性 fixture）",
+      "expected_positive_flag": true,
+      "expected_max_prob_at_threshold_0_5": 0.85,
+      "metadata": {
+        "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.<EXAMPLE_POS>",
+        "PatientID": "<EXAMPLE_PATIENT_POS>",
+        "patient_id_hash_sha256": "f1c2a0d4e6b8c2d4e6f8a0b2c4d6e8f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+        "AccessionNumber": "<EXAMPLE_ACC_POS>",
+        "Modality": "CR",
+        "StudyDate": "20260113",
+        "PatientSex": "M",
+        "PatientAge": "045Y"
+      },
+      "ground_truth_labels": {
+        "top_pathology": "Pneumothorax",
+        "expected_top_prob_at_threshold_0_5": 0.85,
+        "expected_present": true,
+        "expected_localization": "右下肺野"
+      }
+    },
+    {
+      "label": "negative",
+      "filename": "sample_cxr_negative.dcm",
+      "expected_clinical_finding": "正常胸片（已知阴性 fixture）",
+      "expected_positive_flag": false,
+      "expected_max_prob_at_threshold_0_5": 0.10,
+      "metadata": {
+        "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.<EXAMPLE_NEG>",
+        "PatientID": "<EXAMPLE_PATIENT_NEG>",
+        "patient_id_hash_sha256": "a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8",
+        "AccessionNumber": "<EXAMPLE_ACC_NEG>",
+        "Modality": "CR",
+        "StudyDate": "20260113",
+        "PatientSex": "F",
+        "PatientAge": "038Y"
+      },
+      "ground_truth_labels": {
+        "top_pathology": "No Finding",
+        "expected_top_prob_at_threshold_0_5": 0.10,
+        "expected_present": false,
+        "expected_localization": ""
+      }
+    },
+    {
+      "label": "borderline",
+      "filename": "sample_cxr_borderline.dcm",
+      "expected_clinical_finding": "心影临界（已知边界 fixture，max_prob 在阈值附近）",
+      "expected_positive_flag": true,
+      "expected_max_prob_at_threshold_0_5": 0.51,
+      "metadata": {
+        "StudyInstanceUID": "1.2.826.0.1.3680043.8.498.<EXAMPLE_BORDER>",
+        "PatientID": "<EXAMPLE_PATIENT_BORDER>",
+        "patient_id_hash_sha256": "0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f",
+        "AccessionNumber": "<EXAMPLE_ACC_BORDER>",
+        "Modality": "CR",
+        "StudyDate": "20260113",
+        "PatientSex": "F",
+        "PatientAge": "052Y"
+      },
+      "ground_truth_labels": {
+        "top_pathology": "Cardiomegaly",
+        "expected_top_prob_at_threshold_0_5": 0.51,
+        "expected_present": true,
+        "expected_localization": "心影"
+      }
+    }
+  ],
+  "usage_notes": [
+    "本文件与 tests/fixtures/sample_cxr_{positive,negative,borderline}.dcm 一一对应；DICOM 内嵌元数据已使用同样占位符",
+    "patient_id_hash_sha256 仅为 SHA256(PatientID+salt_for_patient_id_hash) 的占位示例，真实计算以 persistence / writers 中的 patient_id_hash() 实现为准",
+    "expected_max_prob_at_threshold_0_5 是 baseline_comparison 在阈值 0.5 下的预期值；用于 Task 35 baseline_comparison.json 横向对比",
+    "fixtures 仅供 test_ev_harness / demo / 单元测试使用；**禁止**当作生产对接层的正式数据来源"
+  ],
+  "placeholder_policy": "所有 <EXAMPLE_*> 标识不会被任何业务代码误读为真实 PatientID/AccessionNumber/StudyInstanceUID；如出现即视为脱敏样例"
+}
